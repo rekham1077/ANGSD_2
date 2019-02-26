@@ -1,0 +1,94 @@
+---
+title: "HW_W7"
+author: "Rekha Murali"
+date: "2/25/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Problem 1
+
+
+### Generate gene count (from class)
+
+```{}
+mkdir readcounts
+cd readcounts
+ln -s /home/frd2007/ANGSD_2019/alignment
+spack load subread@1.6.2
+feature Counts -a /home/frd2007/ANGSD_2019/RNA-seq/refGenome_S_cerevisiae/sacCer3.gtf -o featureCounts_Gierlinkski.txt alignment/*.bam
+
+# transfer for analyzing in R
+scp rrm4001@pascal.med.cornell.edu:/home/rrm4001/readcounts/featureCounts_Gierlinkski.txt.summary /Users/rekhamurali/Desktop
+```
+
+
+### Generate exon counts 
+
+```{}
+featureCounts -f -O  --minOverlap 5  -T 8 -R BAM --Rpath /home/rrm4001/readcounts -a /home/frd2007/ANGSD_2019/RNA-seq/refGenome_S_cerevisiae/sacCer3.gtf -o gier.exoncounts.txt alignment/*.bam
+
+# to view detailed read assignment for one of the files
+spack load samtools@1.9%gcc@6.3.0
+samtools view -h SNF2_1_Aligned.sortedByCoord.out.bam.featureCounts.bam | head -n 30
+
+# transfer for analyzing in R
+scp rrm4001@pascal.med.cornell.edu:/home/rrm4001/readcounts/gier.exoncounts.txt.summary /Users/rekhamurali/Desktop
+```
+
+
+### Results Summary
+
+For generating exon counts I used -f option which performs read counting at the exon level rather than genes. I also used -O which assigns reads to all their overlapping features, and I noticed that when I ran it it counted multi-overlapping reads. I did this so I would get less unmapped ambiguity reads in the case that a read overlaps with more than one exon. I also set the minOverlap to 5 as oppose to the default of 1. featureCounts assigns reads by comparing the mapping location of each base with the genomic positions of features and the default of just needing one bp overlap seemed low to me so I increased it to 5. Additionally, I set the number of threads to run to increase the speed of my run. I also choose the option of more detailed output for each read. I looked at the output of this and under the options of the SAM file there is now another one of which assignment the read got. 
+
+# Problem 2
+
+## Gene Count Plot
+```{r, echo=TRUE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# reformat table for plotting
+gene_counts <- read.delim("/Users/rekhamurali/Desktop/featureCounts_Gierlinkski.txt.summary", row.names=1) %>%
+  t %>%
+  as.data.frame %>%
+  mutate(sample=gsub("Aligned.sortedByCoord.out.bam|alignment.", "", rownames(.))) %>%
+  gather(Assignment, ReadCounts, -sample)
+  
+gene_counts$geneCounts <- gene_counts$ReadCounts
+
+# subset data for easy plotting
+gene_counts <- gene_counts[c(which(gene_counts$geneCounts!=0)),]
+
+# make bar graph
+gene_counts %>% ggplot(aes(Assignment, geneCounts)) + geom_bar(stat="identity", aes(fill=sample), position="dodge")
+```
+
+## Exon Count Plot gier.exoncounts.txt.summary
+
+```{r, echo=TRUE}
+# reformat table for plotting
+exon_counts <- read.delim("/Users/rekhamurali/Desktop/gier.exoncounts.txt.summary", row.names=1) %>%
+  t %>%
+  as.data.frame %>%
+  mutate(sample=gsub("Aligned.sortedByCoord.out.bam|alignment.", "", rownames(.))) %>%
+  gather(Assignment, ReadCounts, -sample)
+  
+exon_counts$exonCounts <- exon_counts$ReadCounts
+
+# subset data for easy plotting
+exon_counts <- exon_counts[c(which(exon_counts$exonCounts!=0)),]
+
+# make bar graph
+exon_counts %>% ggplot(aes(Assignment, exonCounts)) + geom_bar(stat="identity", aes(fill=sample), position="dodge")
+```
+# Problem 3
+
+### Results Summary:
+
+You can see from the plots that I do not have any unassigned ambiguity in my exon run, this could be because of the -O option I set. However, now I have very low levels of unassigned_overlapping_length. The levels of assigned reads between the exonCounts and geneCounts gives very similar results for all the samples. It appears I also have less unassignment in the exon run as oppose to the gene run. This could be because of my options or it could be because not all exon regions have a gene annotation in our annotation file. 
