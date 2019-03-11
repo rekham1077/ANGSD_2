@@ -1,0 +1,124 @@
+---
+title: "RM_HW_W8"
+author: "Rekha Murali"
+date: "3/7/2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Problem 1
+
+## 1.1 Three properties of RNA-seq read count data and adjustments:
+Raw counts can be heavily influenced by a lot of factors such as sequencing depth, gene length, and individual gene abundances. Because of these factors the raw counts need to be normalized and adjusted to more accurately reflect actual number of captured transcripts. You could use TPM to adjust for the effect of gene length. Additionally, rlog is useful because you can normalize for small gene counts and library size so that helps correct for individual gene abundances. One way to normalize for sequencing depth is the DESeq2 function estimateSizeFactors(). 
+
+# Problem 2
+
+## 2.1 Exploring functions
+
+### Use help documentation to find information about the functions
+
+```{r, echo= TRUE}
+suppressPackageStartupMessages(library(DESeq2))
+?rlog
+?DESeqDataSetFromMatrix
+```
+
+### Output:
+
+These are the arguments required for the DESeqDataSetFromMatrix function: 
+
+  * DESeqDataSetFromMatrix(countData, colData, design, tidy = FALSE,
+  ignoreRank = FALSE, ...)
+  
+These are the arguments required for the rlog function: 
+
+  * rlog(object, blind = TRUE, intercept, betaPriorVar,
+  fitType = "parametric")
+
+### Use class/showClass function on S4 objects 
+
+```{r,echo=TRUE}
+# this is the rlog transformed data we created in class using rlog()
+rlogDS <- readRDS("/Users/rekhamurali/Desktop/ANGSD/ANGSD_2/rlog.rds")
+
+# this is the DESeq object we created in class using DESeqDataSetFromMatrix()
+deseqDS <- readRDS("/Users/rekhamurali/Desktop/ANGSD/ANGSD_2/DESeq.rds")
+
+showClass(class(rlogDS))
+showClass(class(deseqDS))
+
+```
+
+### Explanation:
+
+The DESeqDataSetFromMatrix() function creates a DESeq object from a raw counts matrix and colData, which is a data frame that you create specifying your conditions to be compared. The rlog() function transforms the count data to the log2scale and minimizes the differenes in small counts and normalizes with respect to library size. 
+
+
+Two Similarties:
+
+* both are S4 objects and have the same slots associated with them
+* both are DESeq specific functions that output a DESeq object as a result
+
+
+Two Differences: 
+
+* Rlog is transformed data, rlog is used to normalize your data, whereas you still need to normalize after creating the dds object with the other function
+* you need to run DESeqDataSetFromMatrix() first because the output (dds) is what you use for input to rlog()
+
+
+## 2.2 Find expression values
+
+```{}
+# use head() for easier visualization of counts
+# assay is the slot that stores the counts
+# use it as a function to return the counts
+assay(deseqDS)
+assay(rlogDS)
+```
+
+## 2.3 Create a new matrix
+
+```{r, echo=TRUE}
+# add a matrix to my object
+# adding to the metadata slot 
+rlogDS@metadata$my_personal_normalization <- assay(rlogDS)
+```
+
+### Explanation
+
+I have added a new matrix to my DESeq object under the metadata slot. Now when I call the metadata slot as shown above, my_personal_normalization is now another column I can call. 
+
+
+## 2.4 PCA and dendrogram plots
+```{r, echo=TRUE}
+# rlog counts from class
+rlog.norm.counts <- readRDS("/Users/rekhamurali/Desktop/ANGSD/ANGSD_2/rlog.norm.counts.rds")
+
+# dendogram plot using pearson distance
+pw_cor <- cor(rlog.norm.counts, method = "pearson")
+distance.m_rlog <- as.dist(1-pw_cor)
+plot(hclust(distance.m_rlog),labels=colnames(rlog.norm.counts),main="rlog transformed read counts")
+
+# PCA plot
+plotPCA(rlogDS, intgroup=c("condition"))
+```
+
+
+```{}
+# PCA explorer
+pcaExplorer::pcaExplorer(dds=deseqDS ,dst=rlogDS)
+```
+
+### Explanation
+
+From both the dendrogram and PCA plot there are clear trends in the data. The WT and KO conditions are definitely distinct from each other. But, the SNF2 (KO condition) clusters more closely together than the WT. WT_2 and WT_5 cluster closer together and are more seperate from the rest of the WT samples. WT_1 has a closer distance to WT_3 and WT_4 but is still farther away than WT_3 and WT_4 are to each other. Additionally, this is confirmed in the sample distance heatmap that we can visualize in the pcaExplorer session. In the heatmap the trend is the same in that the KO samples have closer distances (or higher correlation) with each other whereas the WT samples have less correlation and greater distances between them. 
+
+
+Another one of the plots/visualizations in pcaExplorer under the sample section is the top and bottom loadings plot for each PC. I think that the loadings represent the variable genes that define that PC. In particular, the top loadings might be the genes that are higher expressed in that PC. 
+
