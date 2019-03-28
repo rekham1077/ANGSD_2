@@ -1,0 +1,103 @@
+
+---
+title: "RM_HW_W10_2"
+author: "Rekha Murali"
+date: "3/28/2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Follow up to question 3
+### Seurat processing
+#### some parts take a while so I am not knitting this part
+```{}
+# seurat processing
+WT_seurat <- FindVariableFeatures(object = WT_seurat, 
+  selection.method = 'mean.var.plot', mean.cutoff = c(0.0125, 3), 
+  dispersion.cutoff = c(0.5, Inf))
+  
+length(x = VariableFeatures(object = WT_seurat))
+VariableFeaturePlot(WT_seurat)
+
+# regress out UMI and mitoDNA
+WT_seurat <- ScaleData(object = WT_seurat, 
+features = rownames(x = WT_seurat), 
+  vars.to.regress = c("nCount_RNA", "fraction.mito"))
+
+
+WT_seurat <- RunPCA(object = WT_seurat, 
+features = VariableFeatures(object = WT_seurat), verbose = FALSE)
+ElbowPlot(object = WT_seurat, ndims=20)
+WT_seurat<- FindNeighbors(object = WT_seurat, dims = 1:6)
+WT_seurat <- FindClusters(object = WT_seurat, resolution = 1)
+WT_seurat <- RunTSNE(object = WT_seurat, dims = 1:6)
+
+saveRDS(WT_seurat,"/Users/rekhamurali/Desktop/lab/0327_WT_seurat_processed.rds")
+
+```
+
+# view clusters
+```{r}
+suppressPackageStartupMessages(library(Seurat))
+WT_seurat <- readRDS("/Users/rekhamurali/Desktop/lab/0327_WT_seurat_processed.rds")
+DimPlot(object = WT_seurat, reduction = 'tsne')
+```
+### Explanation
+
+I show 7 distinc clusters here but I also did not mess much with the parameters so this would need to be refined. Considering I might only be looking for one cell type this might not even make sense.
+
+
+# view expression of potential markers 
+
+## validate first hypothesis
+
+```{r}
+FeaturePlot(WT_seurat, reduction = "tsne", features = "CHGA")
+```
+
+
+### Explanation
+
+This hypothesis was probably wrong, I should see CHGA in more cells if it were endocrine.
+
+## cell cycle gene
+```{r}
+FeaturePlot(WT_seurat, reduction = "tsne", features = "TOP2A")
+```
+
+### Explanation
+
+Since it is a homoegenous population, I would expect the cells to cluster based on cell cycle. We do see pretty high expression of TOP2A so there are clearly a lof of clusters which are cycling. 
+
+
+
+## Test another hypothesis
+### These are some genes in a module defining salivary gland epithelial cells
+
+```{r}
+FeaturePlot(WT_seurat, reduction = "tsne", features = "CNN1")
+FeaturePlot(WT_seurat, reduction = "tsne", features = "PDPN")
+FeaturePlot(WT_seurat, reduction = "tsne", features = "ACTB")
+FeaturePlot(WT_seurat, reduction = "tsne", features = "TPM1")
+
+```
+
+
+
+## explanation
+
+Source: 
+
+http://biocc.hrbmu.edu.cn/CellMarker/search.jsp?species=Human&tissue=Salivary%20gland&cellname=Epithelial%20cell
+
+
+You can see that I have expression of a lot of them, and while not all of them are tissue specific this could be a starting place. Some of the genes, such as CNN1 and TPM1 are expressed mostly in smooth muscle. TPM1 especially is highly expressed in muscle tissues. I don't have a concrete conclusion, but maybe this is a little more correct.
+
+
+
