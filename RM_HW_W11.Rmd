@@ -1,0 +1,121 @@
+---
+title: "RM_HW_W11"
+author: "Rekha Murali"
+date: "3/31/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Problem 1
+
+Peer-reviewed Sources:
+
+* these are from peer-reviewed journals
+
+1. https://doi.org/10.1186/s13059-016-1103-0
+2. https://doi.org/10.1093/jxb/erx289
+3. 10.1155/2012/251364
+
+
+
+
+## 1.1 Summary of Nanopore
+
+A nanopore protein is inserted into an artifical membrane with high electrical resistance, and by applying voltage across the membrane an ionic current through the pore can be established. A motor protein unzips the dsDNA and feeds a single strand through the pore and the resulting disruption in the current is measured to call the bases, or even characterize other features. 
+
+## 1.2 Label the image
+
+* 1a dsDNA
+* 1b base from the strand being sequenced
+* 2 motor protein that unzips and translocates the DNA
+* 3 synthetic membrane
+* 4 nanopore protein 
+
+
+## 1.3 Describe 2 properties the nanopore protein must have
+
+* It must have a pore or channel to translocate a molecule through and faciliate the ion exchange
+* It needs to be able to tolerate voltage, the alpha-haemolysin pore isolated from S. aureus that is used can tolerate a lot of voltage up to 100 mV with a current 100 pA
+
+## 1.4 Where is the change of current registered
+
+A voltage is applied to the membrane and the ionic current passes through the channel of the nanopore and the disruption caused by the molecule of interest passing through or near is what is measured by the sensor. There are microscaffolds which each support a membrane and embedded nanopore, and they each correspond to an electrode connected to a channel in the sensor array chip.
+
+## 1.5 Naturally occuring types of proteins that could be used for the motor protein and properities 
+
+ When I think about the functions of the motor protein to both unzip and pass the DNA through the pore, the first two enzymes that come to mind are helicases and translocases. Helicases unwind dsDNA and translocases assist in moving different molecules. You would need protein(s) with these type of properities to do what the processive enzyme in nanopore does. 
+
+## 1.6 Adapters- what are the three types and their functions
+
+There are two adapters which are attached to each end of the dsDNA, the Y adapter and the hair pin adapter. One end of the Y adapter attaches to the 5' end of a strand and has the motor protein loaded on it, this is the part of the strand that will be sequenced first. The other end of the Y adapter has a tether attached to it, which is a hydrophobic group that helps drag it to the membrane. A tether is also attached to the hair pin end, the tethers increase the DNA capture rate significantly by bringing the adapters close to the membrane. The hairpin adapter covalently attaches both strands of dsDNA , allowing both to be sequenced. Once the hairpin adapter passes through the pore the other strand that is linked passes through and gets sequenced. 
+
+# Problem 2
+
+## 2 Nanopore vs. Illumina
+
+2 Advantages:
+
+* Nanopore allows for much longer reads. This could be because you don't have to rely on individually labeled fluorophores for each base call, instead you typically call 5 or 6-mer current patterns for nanopore. 
+* the MinION platform allows you to sequence anywhere, because it is portable. The size difference is huge in types of samples you can sequence since you aren't required to transport the samples to the lab.
+
+2 Disadvantages:
+
+* The biggest disadvantage of Nanopore compared to Illumina is the error rate. Illumina is < 1% and Nanopore is 2-13% depending on which type you are doing. 
+* The nanopores can get messed up, any particle movement can disrupt the voltage across the channel
+
+
+
+# Problem 3
+
+## 3.1 run fastqc
+
+```{}
+# combine fastqs into one since it is all the same run and input DNA
+for i in `ls  /home/frd2007/ANGSD_2019/nanopore_seq/guppy_out/*.fastq.gz`; do zcat ${i} > nano_all.fastq; done
+
+# gunzip again 
+gzip -f nano_all.fastq
+
+# run fastQC
+spack load fastqc
+fastqc --extract nano_all.fastq.gz -o ~/HW_W11_fastqc/
+
+# transfer html for viewing
+scp rrm4001@pascal.med.cornell.edu:/home/rrm4001/HW_W11_fastqc/nano_all_fastqc.html  /Users/rekhamurali/Desktop
+
+# compare to an illumina run
+
+scp rrm4001@pascal.med.cornell.edu:/home/rrm4001/gierlinski/fastqc/ERR458879_fastqc.html /Users/rekhamurali/Desktop
+
+paste /home/rrm4001/HW_W11_fastqc/nano_all_fastqc/summary.txt /home/rrm4001/gierlinski/fastqc/ERR458879_fastqc/summary.txt
+
+
+```
+
+### Output:
+
+
+Nanopore | Illumina
+---------|----------
+PASS	Basic Statistics	nano_all.fastq.gz	| PASS	Basic Statistics	ERR458879.fastq.gz
+FAIL	Per base sequence quality	nano_all.fastq.gz	| PASS	Per base sequence quality	ERR458879.fastq.gz
+WARN	Per sequence quality scores	nano_all.fastq.gz	|WARN	Per tile sequence quality	ERR458879.fastq.gz
+FAIL	Per base sequence content	nano_all.fastq.gz	 |PASS	Per sequence quality scores	ERR458879.fastq.gz
+WARN	Per sequence GC content	nano_all.fastq.gz	| FAIL	Per base sequence content	ERR458879.fastq.gz
+PASS	Per base N content	nano_all.fastq.gz	| PASS	Per sequence GC content	ERR458879.fastq.gz
+WARN	Sequence Length Distribution	nano_all.fastq.gz	| PASS	Per base N content	ERR458879.fastq.gz
+PASS	Sequence Duplication Levels	nano_all.fastq.gz |	PASS	Sequence Length Distribution	ERR458879.fastq.gz
+PASS	Overrepresented sequences	nano_all.fastq.gz	| WARN	Sequence Duplication Levels	ERR458879.fastq.gz
+PASS	Adapter Content	nano_all.fastq.gz	| PASS	Overrepresented sequences	ERR458879.fastq.gz
+	                  none                     | PASS	Adapter Content	ERR458879.fastq.gz
+	                                       
+## 3.2 2 Differences between nanopore and illumina
+
+* The per base sequence quality is much worse in this nanopore run, which might be expected. I do get one more failure in the QC of the nanopore also, even though we used the control template. 
+* Since they are different sequencing methods some of the QC results are different, for example illumina has a per tile sequence quality section which has to do with the illumina method. You also get a visual representation of the tile qualities in the html of an illumina fastqc run.
+
+
+
